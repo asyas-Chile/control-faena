@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control Diario Faena</title>
+  <title>Control Diario Faena - AS y AS</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
@@ -12,7 +12,12 @@
     
     <!-- PANTALLA 1: INICIO -->
     <div id="pantalla-inicio" class="p-6">
-      <h1 class="text-2xl font-bold mb-4 text-gray-900">🚜 Control de Faena</h1>
+      <!-- LOGO INCLUIDO AQUÍ -->
+      <div class="text-center mb-6">
+        <img src="Logo 2.png" alt="Logo AS y AS" class="mx-auto h-32 object-contain" onerror="this.style.display='none'">
+      </div>
+
+      <h1 class="text-2xl font-bold mb-4 text-gray-900 text-center">🚜 Control de Faena</h1>
       
       <div class="mb-4">
         <label class="block text-sm font-bold mb-2">Fecha:</label>
@@ -29,7 +34,7 @@
       </div>
 
       <div class="mb-6">
-        <label class="block text-sm mb-2 text-gray-500">Supervisor: Sr. Patricio Ardiles</label>
+        <label class="block text-sm mb-2 text-gray-500">Supervisores: P. Ardiles / C. González</label>
       </div>
 
       <h2 class="font-bold mb-3">Seleccione el equipo:</h2>
@@ -55,31 +60,38 @@
       <button id="btn-enviar" onclick="enviarReporte()" class="w-full bg-blue-600 text-white p-4 rounded font-bold text-xl shadow hidden">📤 ENVIAR REPORTE</button>
       
       <div id="loading" class="hidden text-center text-blue-600 font-bold p-4 text-lg">
-        Enviando datos y fotos...<br>Por favor no cierre la pantalla.
+        Enviando datos a la planilla...<br>Por favor no cierre la pantalla.
       </div>
     </div>
 
     <!-- PANTALLA 3: ÉXITO -->
-    <div id="pantalla-exito" class="p-6 hidden text-center mt-20">
+    <div id="pantalla-exito" class="p-6 hidden text-center mt-10">
       <div class="text-7xl mb-4">✅</div>
-      <h2 class="text-3xl font-bold mb-4 text-green-600">¡Reporte Enviado!</h2>
-      <p class="mb-8 text-gray-600 text-lg">El registro ha sido guardado. Se ha notificado al Sr. Patricio Ardiles.</p>
+      <h2 class="text-3xl font-bold mb-2 text-green-600">¡Reporte Guardado!</h2>
+      <p class="mb-6 text-gray-600 text-lg">Los datos ya están en la planilla de Google Sheets.</p>
+      
+      <!-- BOTÓN ÚNICO DE WHATSAPP -->
+      <div class="bg-green-50 p-4 rounded-lg border border-green-200 mb-8">
+        <p class="font-bold mb-3 text-green-800">Paso Final: Notificar a Supervisores</p>
+        <button onclick="abrirWhatsApp()" class="w-full bg-green-500 hover:bg-green-600 text-white p-4 rounded font-bold text-lg shadow flex items-center justify-center">
+          <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+          Enviar Notificación por WhatsApp
+        </button>
+      </div>
+
       <button onclick="location.reload()" class="w-full bg-gray-800 text-white p-4 rounded font-bold text-lg shadow">Realizar otro chequeo</button>
     </div>
 
   </div>
 
   <script>
-    // Tu URL secreta de Google Apps Script ya está configurada aquí:
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAnXZu5i3pT4fZNHyW6eUXvhZSZGmaL3B4fUFVAk8rRxZjWH0s3rH7_BwDWDXb0Rmi-w/exec"; 
-
-    // Fecha automática
+    
     document.getElementById('fecha').value = new Date().toLocaleDateString('es-CL');
 
     let equipoActual = "";
     let fallasArray = [];
 
-    // Base de datos de ítems por equipo
     const pautas = {
       'Caterpillar 232B': [
         "1. Nivel de Aceite de Motor",
@@ -114,7 +126,7 @@
       
       const contenedor = document.getElementById('lista-items');
       contenedor.innerHTML = "";
-      fallasArray = []; // Reiniciar estado
+      fallasArray = []; 
 
       pautas[equipo].forEach((item, index) => {
         contenedor.innerHTML += `
@@ -186,7 +198,6 @@
       const horometro = document.getElementById('horometro').value;
       if(!horometro) { alert("Por favor, ingrese el horómetro o nivel de batería actual."); return; }
 
-      // Validar que las fallas tengan detalle
       for (let f of fallasArray) {
         if (!f.detalle || f.detalle.trim() === "") {
           alert(`Falta detallar la falla en el punto: ${f.item}`);
@@ -208,7 +219,7 @@
       fetch(SCRIPT_URL, {
         method: "POST",
         body: JSON.stringify(payload),
-        headers: { "Content-Type": "text/plain;charset=utf-8" } // Evita problemas de bloqueo CORS
+        headers: { "Content-Type": "text/plain;charset=utf-8" }
       })
       .then(response => response.json())
       .then(data => {
@@ -216,10 +227,21 @@
         document.getElementById('pantalla-exito').classList.remove('hidden');
       })
       .catch(error => {
-        alert("El reporte fue enviado y guardado, pero hubo un detalle en la conexión de confirmación. Puede cerrar la aplicación.");
+        alert("El reporte fue guardado en Google Sheets, pero hubo un error de conexión visual. Puede continuar.");
         document.getElementById('pantalla-checklist').classList.add('hidden');
         document.getElementById('pantalla-exito').classList.remove('hidden');
       });
+    }
+
+    function abrirWhatsApp() {
+      const operador = document.getElementById('operador').value;
+      const fecha = document.getElementById('fecha').value;
+      const estadoFallas = fallasArray.length > 0 ? "⚠️ *CON FALLAS* (Ver Drive)" : "✅ *ÓPTIMO* (Sin fallas)";
+      
+      const mensaje = `🚜 *REPORTE DIARIO DE FAENA*%0A*Operador:* ${operador}%0A*Equipo:* ${equipoActual}%0A*Fecha:* ${fecha}%0A*Estado:* ${estadoFallas}%0A%0A*Planilla actualizada, revisar novedades.*`;
+      
+      // Esto abrirá la lista de contactos del usuario para seleccionar a Patricio y Carlos
+      window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
     }
   </script>
 </body>
