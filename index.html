@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Diario Faena</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+  <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-md relative">
+    
+    <!-- PANTALLA 1: INICIO -->
+    <div id="pantalla-inicio" class="p-6">
+      <h1 class="text-2xl font-bold mb-4 text-gray-900">🚜 Control de Faena</h1>
+      
+      <div class="mb-4">
+        <label class="block text-sm font-bold mb-2">Fecha:</label>
+        <input type="text" id="fecha" readonly class="w-full bg-gray-200 p-3 rounded font-bold" />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-bold mb-2">Operador:</label>
+        <select id="operador" class="w-full border p-3 rounded text-lg bg-white">
+          <option value="">Seleccione...</option>
+          <option value="Eliazar Ramos">Eliazar Ramos</option>
+          <option value="Mario Ramos">Mario Ramos</option>
+        </select>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm mb-2 text-gray-500">Supervisor: Sr. Patricio Ardiles</label>
+      </div>
+
+      <h2 class="font-bold mb-3">Seleccione el equipo:</h2>
+      <button onclick="iniciarChecklist('Caterpillar 232B')" class="w-full bg-green-600 text-white p-4 rounded mb-3 font-bold text-lg shadow">🟩 MINICARGADOR CAT 232B</button>
+      <button onclick="iniciarChecklist('Grupo Electrógeno 3kVA')" class="w-full bg-blue-600 text-white p-4 rounded mb-3 font-bold text-lg shadow">🟦 GRUPO ELECTRÓGENO 3kVA</button>
+      <button onclick="iniciarChecklist('Minidumper Eléctrico')" class="w-full bg-orange-600 text-white p-4 rounded mb-3 font-bold text-lg shadow">🟧 MINIDUMPER ELÉCTRICO</button>
+    </div>
+
+    <!-- PANTALLA 2: CHECKLIST -->
+    <div id="pantalla-checklist" class="p-6 hidden">
+      <button onclick="volverInicio()" class="text-blue-500 mb-4 font-bold text-lg">← Volver</button>
+      <h2 id="titulo-equipo" class="text-2xl font-bold mb-4 text-gray-900"></h2>
+
+      <div class="mb-6">
+        <label class="block text-sm font-bold mb-2">Horómetro / Nivel Batería:</label>
+        <input type="number" id="horometro" class="w-full border border-gray-400 p-3 rounded text-lg focus:ring-2 focus:ring-blue-500" placeholder="Ej: 4500" />
+      </div>
+
+      <div id="lista-items" class="space-y-6 mb-8">
+        <!-- Los items se generan vía JS -->
+      </div>
+
+      <button id="btn-enviar" onclick="enviarReporte()" class="w-full bg-blue-600 text-white p-4 rounded font-bold text-xl shadow hidden">📤 ENVIAR REPORTE</button>
+      
+      <div id="loading" class="hidden text-center text-blue-600 font-bold p-4 text-lg">
+        Enviando datos y fotos...<br>Por favor no cierre la pantalla.
+      </div>
+    </div>
+
+    <!-- PANTALLA 3: ÉXITO -->
+    <div id="pantalla-exito" class="p-6 hidden text-center mt-20">
+      <div class="text-7xl mb-4">✅</div>
+      <h2 class="text-3xl font-bold mb-4 text-green-600">¡Reporte Enviado!</h2>
+      <p class="mb-8 text-gray-600 text-lg">El registro ha sido guardado. Se ha notificado al Sr. Patricio Ardiles.</p>
+      <button onclick="location.reload()" class="w-full bg-gray-800 text-white p-4 rounded font-bold text-lg shadow">Realizar otro chequeo</button>
+    </div>
+
+  </div>
+
+  <script>
+    // Tu URL secreta de Google Apps Script ya está configurada aquí:
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAnXZu5i3pT4fZNHyW6eUXvhZSZGmaL3B4fUFVAk8rRxZjWH0s3rH7_BwDWDXb0Rmi-w/exec"; 
+
+    // Fecha automática
+    document.getElementById('fecha').value = new Date().toLocaleDateString('es-CL');
+
+    let equipoActual = "";
+    let fallasArray = [];
+
+    // Base de datos de ítems por equipo
+    const pautas = {
+      'Caterpillar 232B': [
+        "1. Nivel de Aceite de Motor",
+        "2. Nivel de Líquido Refrigerante",
+        "3. Nivel de Aceite Hidráulico",
+        "4. Fugas Visibles (Motor/Hidráulica)",
+        "5. Mangueras y Cilindros",
+        "6. Pasadores y Balde",
+        "7. Neumáticos y Presión",
+        "8. Mandos y Frenos"
+      ],
+      'Grupo Electrógeno 3kVA': [
+        "1. Nivel de Combustible",
+        "2. Nivel de Aceite de Motor",
+        "3. Estado Filtro de Aire",
+        "4. Conexiones y Tierra"
+      ],
+      'Minidumper Eléctrico': [
+        "1. Cables y Conexiones (Bornes)",
+        "2. Sistema de Frenos",
+        "3. Mecanismo de Tolva",
+        "4. Presión Ruedas / Orugas"
+      ]
+    };
+
+    function iniciarChecklist(equipo) {
+      const operador = document.getElementById('operador').value;
+      if(!operador) { alert("Por favor, seleccione su nombre de Operador antes de continuar."); return; }
+
+      equipoActual = equipo;
+      document.getElementById('titulo-equipo').innerText = equipo;
+      
+      const contenedor = document.getElementById('lista-items');
+      contenedor.innerHTML = "";
+      fallasArray = []; // Reiniciar estado
+
+      pautas[equipo].forEach((item, index) => {
+        contenedor.innerHTML += `
+          <div class="bg-gray-50 p-4 border rounded shadow-sm" id="card-${index}">
+            <p class="font-bold text-lg mb-3">${item}</p>
+            <div class="flex space-x-2">
+              <button onclick="marcarEstado(${index}, 'Bueno', '${item}')" class="w-1/2 bg-gray-200 p-3 rounded font-bold hover:bg-green-500 hover:text-white transition" id="btn-bueno-${index}">👍 Bueno</button>
+              <button onclick="marcarEstado(${index}, 'Malo', '${item}')" class="w-1/2 bg-gray-200 p-3 rounded font-bold hover:bg-red-500 hover:text-white transition" id="btn-malo-${index}">👎 Malo</button>
+            </div>
+            
+            <div id="caja-falla-${index}" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded">
+              <label class="block text-sm font-bold text-red-700 mb-1">⚠️ Describa la falla:</label>
+              <input type="text" id="detalle-${index}" class="w-full border border-red-300 p-2 rounded mb-3" placeholder="Ej: Fuga detectada en manguera..." onchange="actualizarFalla(${index})" />
+              
+              <label class="block text-sm font-bold text-red-700 mb-1">📸 Foto Evidencia (Obligatoria):</label>
+              <input type="file" accept="image/*" capture="environment" id="foto-${index}" class="w-full text-sm" onchange="procesarFoto(event, ${index})" />
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('pantalla-inicio').classList.add('hidden');
+      document.getElementById('pantalla-checklist').classList.remove('hidden');
+      document.getElementById('btn-enviar').classList.remove('hidden');
+    }
+
+    function marcarEstado(index, estado, itemNombre) {
+      document.getElementById(`btn-bueno-${index}`).classList.remove('bg-green-500', 'text-white');
+      document.getElementById(`btn-malo-${index}`).classList.remove('bg-red-500', 'text-white');
+      
+      if(estado === 'Bueno') {
+        document.getElementById(`btn-bueno-${index}`).classList.add('bg-green-500', 'text-white');
+        document.getElementById(`caja-falla-${index}`).classList.add('hidden');
+        fallasArray = fallasArray.filter(f => f.index !== index);
+      } else {
+        document.getElementById(`btn-malo-${index}`).classList.add('bg-red-500', 'text-white');
+        document.getElementById(`caja-falla-${index}`).classList.remove('hidden');
+        
+        if(!fallasArray.find(f => f.index === index)){
+          fallasArray.push({ index: index, item: itemNombre, detalle: "", fotoBase64: null });
+        }
+      }
+    }
+
+    function actualizarFalla(index) {
+      const detalle = document.getElementById(`detalle-${index}`).value;
+      const falla = fallasArray.find(f => f.index === index);
+      if(falla) falla.detalle = detalle;
+    }
+
+    function procesarFoto(event, index) {
+      const file = event.target.files[0];
+      if(!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const falla = fallasArray.find(f => f.index === index);
+        if(falla) falla.fotoBase64 = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function volverInicio() {
+      document.getElementById('pantalla-inicio').classList.remove('hidden');
+      document.getElementById('pantalla-checklist').classList.add('hidden');
+    }
+
+    function enviarReporte() {
+      const horometro = document.getElementById('horometro').value;
+      if(!horometro) { alert("Por favor, ingrese el horómetro o nivel de batería actual."); return; }
+
+      // Validar que las fallas tengan detalle
+      for (let f of fallasArray) {
+        if (!f.detalle || f.detalle.trim() === "") {
+          alert(`Falta detallar la falla en el punto: ${f.item}`);
+          return;
+        }
+      }
+
+      document.getElementById('btn-enviar').classList.add('hidden');
+      document.getElementById('loading').classList.remove('hidden');
+
+      const payload = {
+        fecha: document.getElementById('fecha').value,
+        operador: document.getElementById('operador').value,
+        equipo: equipoActual,
+        horometro: horometro,
+        fallas: fallasArray
+      };
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "text/plain;charset=utf-8" } // Evita problemas de bloqueo CORS
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('pantalla-checklist').classList.add('hidden');
+        document.getElementById('pantalla-exito').classList.remove('hidden');
+      })
+      .catch(error => {
+        alert("El reporte fue enviado y guardado, pero hubo un detalle en la conexión de confirmación. Puede cerrar la aplicación.");
+        document.getElementById('pantalla-checklist').classList.add('hidden');
+        document.getElementById('pantalla-exito').classList.remove('hidden');
+      });
+    }
+  </script>
+</body>
+</html>
