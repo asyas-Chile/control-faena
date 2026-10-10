@@ -12,7 +12,6 @@
     
     <!-- PANTALLA 1: INICIO -->
     <div id="pantalla-inicio" class="p-6">
-      <!-- LOGO INCLUIDO AQUÍ -->
       <div class="text-center mb-6">
         <img src="Logo 2.png" alt="Logo AS y AS" class="mx-auto h-32 object-contain" onerror="this.style.display='none'">
       </div>
@@ -48,9 +47,25 @@
       <button onclick="volverInicio()" class="text-blue-500 mb-4 font-bold text-lg">← Volver</button>
       <h2 id="titulo-equipo" class="text-2xl font-bold mb-4 text-gray-900"></h2>
 
-      <div class="mb-6">
-        <label class="block text-sm font-bold mb-2">Horómetro / Nivel Batería:</label>
+      <!-- CAMPO ESTÁNDAR (Horómetro/Batería) -->
+      <div id="caja-horometro" class="mb-6">
+        <label id="label-horometro" class="block text-sm font-bold mb-2">Horómetro / Nivel Batería:</label>
         <input type="number" id="horometro" class="w-full border border-gray-400 p-3 rounded text-lg focus:ring-2 focus:ring-blue-500" placeholder="Ej: 4500" />
+      </div>
+
+      <!-- CAMPO NUEVO DE TIEMPO (Solo para CAT 232B) -->
+      <div id="caja-tiempos" class="mb-6 hidden bg-gray-50 p-4 border border-gray-300 rounded">
+        <label class="block text-sm font-bold mb-3 text-gray-800">Registro de Uso (Odómetro descompuesto):</label>
+        <div class="flex space-x-4">
+          <div class="w-1/2">
+            <label class="block text-xs font-bold text-gray-600 mb-1">Hora Inicio:</label>
+            <input type="time" id="hora-inicio" class="w-full border border-gray-400 p-2 rounded text-lg focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="w-1/2">
+            <label class="block text-xs font-bold text-gray-600 mb-1">Hora Término:</label>
+            <input type="time" id="hora-termino" class="w-full border border-gray-400 p-2 rounded text-lg focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
       </div>
 
       <div id="lista-items" class="space-y-6 mb-8">
@@ -70,7 +85,6 @@
       <h2 class="text-3xl font-bold mb-2 text-green-600">¡Reporte Guardado!</h2>
       <p class="mb-6 text-gray-600 text-lg">Los datos ya están en la planilla de Google Sheets.</p>
       
-      <!-- BOTÓN ÚNICO DE WHATSAPP -->
       <div class="bg-green-50 p-4 rounded-lg border border-green-200 mb-8">
         <p class="font-bold mb-3 text-green-800">Paso Final: Notificar a Supervisores</p>
         <button onclick="abrirWhatsApp()" class="w-full bg-green-500 hover:bg-green-600 text-white p-4 rounded font-bold text-lg shadow flex items-center justify-center">
@@ -123,6 +137,16 @@
 
       equipoActual = equipo;
       document.getElementById('titulo-equipo').innerText = equipo;
+      
+      // Lógica para mostrar Horómetro vs Tiempos
+      if (equipo === 'Caterpillar 232B') {
+        document.getElementById('caja-horometro').classList.add('hidden');
+        document.getElementById('caja-tiempos').classList.remove('hidden');
+      } else {
+        document.getElementById('caja-horometro').classList.remove('hidden');
+        document.getElementById('caja-tiempos').classList.add('hidden');
+        document.getElementById('label-horometro').innerText = equipo === 'Minidumper Eléctrico' ? "Nivel de Batería (%):" : "Horómetro Actual:";
+      }
       
       const contenedor = document.getElementById('lista-items');
       contenedor.innerHTML = "";
@@ -195,8 +219,24 @@
     }
 
     function enviarReporte() {
-      const horometro = document.getElementById('horometro').value;
-      if(!horometro) { alert("Por favor, ingrese el horómetro o nivel de batería actual."); return; }
+      let valorRegistro = "";
+
+      // Capturar tiempos si es CAT, u Horómetro si son los otros
+      if (equipoActual === 'Caterpillar 232B') {
+        const hInicio = document.getElementById('hora-inicio').value;
+        const hTermino = document.getElementById('hora-termino').value;
+        if(!hInicio || !hTermino) {
+          alert("Por favor, ingrese la hora de inicio y término del uso del equipo.");
+          return;
+        }
+        valorRegistro = `Inicio: ${hInicio} - Fin: ${hTermino}`;
+      } else {
+        valorRegistro = document.getElementById('horometro').value;
+        if(!valorRegistro) {
+          alert("Por favor, ingrese el horómetro o nivel de batería actual.");
+          return;
+        }
+      }
 
       for (let f of fallasArray) {
         if (!f.detalle || f.detalle.trim() === "") {
@@ -212,7 +252,7 @@
         fecha: document.getElementById('fecha').value,
         operador: document.getElementById('operador').value,
         equipo: equipoActual,
-        horometro: horometro,
+        horometro: valorRegistro,
         fallas: fallasArray
       };
 
@@ -240,7 +280,6 @@
       
       const mensaje = `🚜 *REPORTE DIARIO DE FAENA*%0A*Operador:* ${operador}%0A*Equipo:* ${equipoActual}%0A*Fecha:* ${fecha}%0A*Estado:* ${estadoFallas}%0A%0A*Planilla actualizada, revisar novedades.*`;
       
-      // Esto abrirá la lista de contactos del usuario para seleccionar a Patricio y Carlos
       window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
     }
   </script>
